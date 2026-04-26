@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""课程伴学助教 - 文件持久化版本"""
+"""课程伴学助教 - 文件持久化版本 + 中文分词优化"""
 import streamlit as st
 import os
 import json
@@ -193,10 +193,19 @@ class FileVectorStore:
         if not docs:
             return []
         try:
+            import jieba
             from sklearn.feature_extraction.text import TfidfVectorizer
             from sklearn.metrics.pairwise import cosine_similarity
+            
+            # 中文分词
+            def tokenize(text):
+                return ' '.join(jieba.cut(text))
+            
+            tokenized_docs = [tokenize(d) for d in docs]
+            tokenized_query = tokenize(query)
+            
             vectorizer = TfidfVectorizer(max_features=3000)
-            all_texts = docs + [query]
+            all_texts = tokenized_docs + [tokenized_query]
             matrix = vectorizer.fit_transform(all_texts)
             sims = cosine_similarity(matrix[-1:], matrix[:-1])[0]
             top_idx = np.argsort(sims)[::-1][:top_k]
@@ -224,7 +233,7 @@ class FileVectorStore:
 def call_llm(provider: str, api_key: str, model: str, messages: List[Dict]) -> str:
     import openai
     config = MODEL_CONFIG.get(provider, MODEL_CONFIG["deepseek"])
-    client = openai.OpenAI(api_key=api_key, base_url=config["base_url"])
+    client = openai.OpenAI(api_key=api_key.strip(), base_url=config["base_url"])
     response = client.chat.completions.create(
         model=model,
         messages=messages,
@@ -263,6 +272,20 @@ st.set_page_config(
     layout="wide"
 )
 
+# 自定义样式
+st.markdown("""
+<style>
+div[data-testid='stChatInput'] textarea {
+    min-height: 120px !important;
+    font-size: 16px !important;
+}
+div[data-testid='stChatMessage'] {
+    padding: 10px;
+    margin-bottom: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 if "current_course" not in st.session_state:
     st.session_state.current_course = None
 if "messages" not in st.session_state:
@@ -285,7 +308,7 @@ with st.sidebar:
         index=0
     )
     if st.button("保存配置", type="primary"):
-        st.session_state.config = {"provider": provider, "api_key": api_key, "model": model}
+        st.session_state.config = {"provider": provider, "api_key": api_key.strip(), "model": model}
         save_config(st.session_state.config)
         st.success("✅ 配置已保存")
     
@@ -358,16 +381,25 @@ with tab1:
 
 with tab2:
     st.markdown("### 💬 课程问答")
+    st.markdown("**在下方输入框提问，最新的对话显示在最上面**")
+    
     if not st.session_state.config.get("api_key"):
         st.warning("⚠️ 请先在侧边栏配置API密钥")
         st.stop()
-    for msg in st.session_state.messages:
+    
+    # 输入框
+    question = st.chat_input("输入你的问题...")
+    
+    # 对话记录（最新的在上面）
+    for msg in reversed(st.session_state.messages):
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
-    if question := st.chat_input("输入你的问题..."):
+    
+    if question:
         st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.markdown(question)
+        
         with st.chat_message("assistant"):
             with st.spinner("思考中..."):
                 contexts = vs.search(question, top_k=3)
@@ -388,6 +420,8 @@ with tab2:
                     answer = "抱歉，没有找到相关的课件内容。请先上传相关课件。"
                     st.warning(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
+        st.rerun()
+    
     if st.button("清空对话"):
         st.session_state.messages = []
         st.rerun()
