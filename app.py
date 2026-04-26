@@ -156,46 +156,46 @@ class SimpleVectorStore:
         self.courses: Dict[str, Dict] = {}
         self._load_all()
     
-    def _get_file(self, course_name: str) -> Path:
-        safe = hashlib.md5(course_name.encode()).hexdigest()[:8]
-        return self.data_dir / f"course_{safe}.pkl"
-    
     def _load_all(self):
+        """加载所有课程数据"""
+        if not self.data_dir.exists():
+            return
         for f in self.data_dir.glob("course_*.pkl"):
             try:
                 with open(f, 'rb') as fp:
                     data = pickle.load(fp)
-                    self.courses[data["course_name"]] = data
-            except:
-                pass
+                    self.courses[data["course_name"]] = {
+                        "documents": data.get("documents", []),
+                        "metadatas": data.get("metadatas", [])
+                    }
+            except Exception as e:
+                print(f"加载失败: {e}")
     
     def _save(self, course_name: str):
+        """保存课程数据"""
         if course_name in self.courses:
+            data = {
+                "course_name": course_name,
+                "documents": self.courses[course_name]["documents"],
+                "metadatas": self.courses[course_name]["metadatas"]
+            }
             with open(self._get_file(course_name), 'wb') as f:
-                pickle.dump(self.courses[course_name], f)
+                pickle.dump(data, f)
+    
+    def _get_file(self, course_name: str) -> Path:
+        safe = hashlib.md5(course_name.encode()).hexdigest()[:8]
+        return self.data_dir / f"course_{safe}.pkl"
     
     def add_documents(self, course_name: str, documents: List[Dict], file_name: str) -> bool:
         try:
-            from sklearn.feature_extraction.text import TfidfVectorizer
-            
             texts = [d["text"] for d in documents]
             metas = [{**d.get("metadata", {}), "file_name": file_name} for d in documents]
             
             if course_name not in self.courses:
-                self.courses[course_name] = {
-                    "course_name": course_name,
-                    "documents": texts,
-                    "metadatas": metas
-                }
+                self.courses[course_name] = {"documents": texts, "metadatas": metas}
             else:
                 self.courses[course_name]["documents"].extend(texts)
                 self.courses[course_name]["metadatas"].extend(metas)
-            
-            # 重新训练向量化器
-            all_docs = self.courses[course_name]["documents"]
-            vectorizer = TfidfVectorizer(max_features=3000)
-            self.courses[course_name]["vectorizer"] = vectorizer.fit_transform(all_docs)
-            self.courses[course_name]["matrix"] = self.courses[course_name]["vectorizer"]
             
             self._save(course_name)
             return True
@@ -204,27 +204,41 @@ class SimpleVectorStore:
             return False
     
     def search(self, course_name: str, query: str, top_k: int = 5) -> List[Dict]:
+        # 先重新加载数据
+        self._load_all()
+        
         if course_name not in self.courses:
+            st.warning(f"课程 {course_name} 没有数据")
+            return []
+        
+        data = self.courses[course_name]
+        docs = data["documents"]
+        metas = data["metadatas"]
+        
+        if not docs:
             return []
         
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer
             from sklearn.metrics.pairwise import cosine_similarity
             
-            data = self.courses[course_name]
-            docs = data["documents"]
-            metas = data["metadatas"]
-            
-            # 重新向量化
             vectorizer = TfidfVectorizer(max_features=3000)
-            matrix = vectorizer.fit_transform(docs + [query])
-            
-            # 计算相似度
+            all_texts = docs + [query]
+            matrix = vectorizer.fit_transform(all_texts)
             sims = cosine_similarity(matrix[-1:], matrix[:-1])[0]
             top_idx = np.argsort(sims)[::-1][:top_k]
             
-            return [{"text": docs[i], "score": sims[i], "metadata": metas[i]} for i in top_idx if sims[i] > 0]
-        except:
+            results = []
+            for i in top_idx:
+                if sims[i] > 0:
+                    results.append({
+                        "text": docs[i],
+                        "score": float(sims[i]),
+                        "metadata": metas[i] if i < len(metas) else {}
+                    })
+            return results
+        except Exception as e:
+            st.error(f"检索失败: {e}")
             return []
     
     def get_stats(self, course_name: str) -> Dict:
