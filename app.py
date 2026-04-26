@@ -196,12 +196,15 @@ class SimpleVectorStore:
             return False
     
     def search(self, course_name: str, query: str, top_k: int = 5) -> List[Dict]:
+        # 关键：每次搜索时重新获取最新数据
+        self.courses = st.session_state.get("vector_store_data", {})
+        
         if course_name not in self.courses:
             return []
         
         data = self.courses[course_name]
-        docs = data["documents"]
-        metas = data["metadatas"]
+        docs = data.get("documents", [])
+        metas = data.get("metadatas", [])
         
         if not docs:
             return []
@@ -230,14 +233,16 @@ class SimpleVectorStore:
             return []
     
     def get_stats(self, course_name: str) -> Dict:
+        self.courses = st.session_state.get("vector_store_data", {})
         if course_name not in self.courses:
             return {"count": 0}
-        return {"count": len(self.courses[course_name]["documents"])}
+        return {"count": len(self.courses[course_name].get("documents", []))}
     
     def list_files(self, course_name: str) -> List[str]:
+        self.courses = st.session_state.get("vector_store_data", {})
         if course_name not in self.courses:
             return []
-        return list(set(m.get("file_name", "") for m in self.courses[course_name]["metadatas"]))
+        return list(set(m.get("file_name", "") for m in self.courses[course_name].get("metadatas", [])))
     
     def delete_file(self, course_name: str, file_name: str) -> bool:
         if course_name not in self.courses:
@@ -315,6 +320,10 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "config" not in st.session_state:
     st.session_state.config = load_config()
+
+# 关键：向量存储数据必须在最开始初始化，确保全局共享
+if "vector_store_data" not in st.session_state:
+    st.session_state.vector_store_data = {}
 
 # 侧边栏
 with st.sidebar:
