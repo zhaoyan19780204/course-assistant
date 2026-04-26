@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""课程伴学助教 - 文件持久化版本 + 中文分词优化"""
+"""小书童 - 文件持久化版本 + 中文分词优化"""
 import streamlit as st
 import os
 import json
@@ -246,7 +246,7 @@ def build_prompt(question: str, contexts: List[Dict], course_name: str) -> List[
         f"【参考资料{i+1}】{c['metadata'].get('section', '')}\n{c['text']}"
         for i, c in enumerate(contexts)
     ])
-    system_prompt = f"""你是课程「{course_name}」的学习助手。
+    system_prompt = f"""你是课程「{course_name}」的小书童学习助手。
 请基于以下参考资料回答问题，并在回答末尾标注内容来源。
 
 参考资料：
@@ -266,7 +266,7 @@ def build_prompt(question: str, contexts: List[Dict], course_name: str) -> List[
 
 # ==================== Streamlit应用 ====================
 st.set_page_config(
-    page_title="课程伴学助教",
+    page_title="小书童",
     page_icon="📚",
     layout="wide"
 )
@@ -396,7 +396,138 @@ div[data-testid='stSuccess'] {
 div[data-testid='stWarning'] {
     background: rgba(233,69,96,0.2) !important;
 }
+
+/* 主内容区背景 */
+.main, .main > div, section[data-testid='stMain'] {
+    background: transparent !important;
+}
+
+/* 标签页容器背景 */
+.stTabs, .stTabs > div, .stTabs [data-testid='stVerticalBlock'] {
+    background: transparent !important;
+}
+
+/* 激活的标签页 */
+.stTabs button[aria-selected="true"] {
+    background: rgba(233,69,96,0.3) !important;
+    border-color: #e94560 !important;
+}
+
+/* 文件上传区域 */
+section[data-testid='stFileUploader'] {
+    background: rgba(255,255,255,0.02) !important;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+/* Metric样式 */
+div[data-testid='stMetric'] {
+    background: rgba(255,255,255,0.03) !important;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+div[data-testid='stMetric'] label {
+    color: #b8b8b8 !important;
+}
+
+div[data-testid='stMetric'] [data-testid='stMetricValue'] {
+    color: #e94560 !important;
+}
+
+/* 文本输入框 */
+input[type="text"], .stTextInput input {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    color: #e8e8e8 !important;
+}
+
+/* 选择框 */
+div[data-baseweb="select"] > div {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+div[data-baseweb="select"] span {
+    color: #e8e8e8 !important;
+}
+
+/* 分割线 */
+hr, .stDivider {
+    border-color: rgba(255,255,255,0.1) !important;
+}
+
 </style>
+/* 主内容区背景 */
+.main, .main > div, section[data-testid='stMain'] {
+    background: transparent !important;
+}
+
+/* 标签页容器背景 */
+.stTabs, .stTabs > div, .stTabs [data-testid='stVerticalBlock'] {
+    background: transparent !important;
+}
+
+/* 标签页面板背景 */
+div[data-testid='stVerticalBlock'] > div:has(> div[data-testid='stChatInput']) {
+    background: transparent !important;
+}
+
+/* 激活的标签页 */
+.stTabs button[aria-selected="true"] {
+    background: rgba(233,69,96,0.3) !important;
+    border-color: #e94560 !important;
+}
+
+/* 文件上传区域 */
+section[data-testid='stFileUploader'] {
+    background: rgba(255,255,255,0.02) !important;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+/* Metric样式 */
+div[data-testid='stMetric'] {
+    background: rgba(255,255,255,0.03) !important;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+div[data-testid='stMetric'] label {
+    color: #b8b8b8 !important;
+}
+
+div[data-testid='stMetric'] [data-testid='stMetricValue'] {
+    color: #e94560 !important;
+}
+
+/* 文本输入框 */
+input[type="text"], .stTextInput input {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    color: #e8e8e8 !important;
+}
+
+/* 选择框 */
+div[data-baseweb="select"] > div {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+div[data-baseweb="select"] span {
+    color: #e8e8e8 !important;
+}
+
+/* 分割线 */
+hr, .stDivider {
+    border-color: rgba(255,255,255,0.1) !important;
+}
+
+/* Expander样式 */
+.streamlit-expanderHeader {
+    background: rgba(255,255,255,0.03) !important;
+    color: #e8e8e8 !important;
+}
 """, unsafe_allow_html=True)
 
 if "messages" not in st.session_state:
@@ -512,7 +643,7 @@ with tab2:
     st.info("💡 提示：数据已保存到文件，刷新页面不会丢失")
 
 with tab1:
-    st.markdown(f"### 💬 课程问答 - **{course_name}**")
+    st.markdown(f"### 💬 小书童问答 - **{course_name}**")
     st.markdown("**在下方输入框提问，最新的对话显示在最上面**")
     
     if not st.session_state.config.get("api_key"):
