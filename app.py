@@ -148,39 +148,17 @@ def get_file_type_label(suffix: str) -> str:
 
 # ==================== 向量存储模块 ====================
 class SimpleVectorStore:
-    """简单的向量存储"""
+    """简单的向量存储 - 使用session_state持久化"""
     
     def __init__(self, data_dir: str):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.courses: Dict[str, Dict] = {}
-        self._load_all()
-    
-    def _load_all(self):
-        """加载所有课程数据"""
-        if not self.data_dir.exists():
-            return
-        for f in self.data_dir.glob("course_*.pkl"):
-            try:
-                with open(f, 'rb') as fp:
-                    data = pickle.load(fp)
-                    self.courses[data["course_name"]] = {
-                        "documents": data.get("documents", []),
-                        "metadatas": data.get("metadatas", [])
-                    }
-            except Exception as e:
-                print(f"加载失败: {e}")
-    
-    def _save(self, course_name: str):
-        """保存课程数据"""
-        if course_name in self.courses:
-            data = {
-                "course_name": course_name,
-                "documents": self.courses[course_name]["documents"],
-                "metadatas": self.courses[course_name]["metadatas"]
-            }
-            with open(self._get_file(course_name), 'wb') as f:
-                pickle.dump(data, f)
+        
+        # 使用 session_state 存储数据
+        if "vector_store_data" not in st.session_state:
+            st.session_state.vector_store_data = {}
+        
+        self.courses = st.session_state.vector_store_data
     
     def _get_file(self, course_name: str) -> Path:
         safe = hashlib.md5(course_name.encode()).hexdigest()[:8]
@@ -197,18 +175,28 @@ class SimpleVectorStore:
                 self.courses[course_name]["documents"].extend(texts)
                 self.courses[course_name]["metadatas"].extend(metas)
             
-            self._save(course_name)
+            # 更新 session_state
+            st.session_state.vector_store_data = self.courses
+            
+            # 也保存到文件（备份）
+            try:
+                data = {
+                    "course_name": course_name,
+                    "documents": self.courses[course_name]["documents"],
+                    "metadatas": self.courses[course_name]["metadatas"]
+                }
+                with open(self._get_file(course_name), 'wb') as f:
+                    pickle.dump(data, f)
+            except:
+                pass
+            
             return True
         except Exception as e:
             st.error(f"添加文档失败: {e}")
             return False
     
     def search(self, course_name: str, query: str, top_k: int = 5) -> List[Dict]:
-        # 先重新加载数据
-        self._load_all()
-        
         if course_name not in self.courses:
-            st.warning(f"课程 {course_name} 没有数据")
             return []
         
         data = self.courses[course_name]
