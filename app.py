@@ -327,7 +327,7 @@ with st.sidebar:
         index=0
     )
     
-    api_key = st.text_input("API Key", type="password", value=st.session_state.config.get("api_key", ""))
+    api_key = st.text_input("API密钥", type="password", value=st.session_state.config.get("api_key", ""))
     
     model = st.selectbox(
         "选择模型",
@@ -427,7 +427,7 @@ with tab2:
     st.markdown("### 💬 课程问答")
     
     if not st.session_state.config.get("api_key"):
-        st.warning("⚠️ 请先在侧边栏配置 API Key")
+        st.warning("⚠️ 请先在侧边栏配置API密钥")
         st.stop()
     
     # 聊天记录
