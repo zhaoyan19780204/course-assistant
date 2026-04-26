@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""课程伴学助教 - Streamlit单文件版本"""
+"""课程伴学助教 - 文件持久化版本"""
 import streamlit as st
 import os
 import json
@@ -11,8 +11,14 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 
 # ==================== 配置模块 ====================
-CONFIG_FILE = Path("data/config.json")
-COURSES_DIR = Path("data/courses")
+DATA_DIR = Path("data")
+CONFIG_FILE = DATA_DIR / "config.json"
+COURSES_DIR = DATA_DIR / "courses"
+VECTORS_DIR = DATA_DIR / "vectors"
+
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+COURSES_DIR.mkdir(parents=True, exist_ok=True)
+VECTORS_DIR.mkdir(parents=True, exist_ok=True)
 
 MODEL_CONFIG = {
     "deepseek": {
@@ -42,26 +48,40 @@ def load_config() -> dict:
     return {}
 
 def save_config(config: dict) -> bool:
-    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
     return True
 
 def get_course_path(course_name: str) -> Path:
-    path = COURSES_DIR / course_name
+    path = COURSES_DIR / hashlib.md5(course_name.encode()).hexdigest()[:8]
     path.mkdir(parents=True, exist_ok=True)
+    name_file = path / ".name"
+    if not name_file.exists():
+        with open(name_file, "w", encoding="utf-8") as f:
+            f.write(course_name)
     return path
 
 def list_courses() -> List[str]:
     if not COURSES_DIR.exists():
         return []
-    return [d.name for d in COURSES_DIR.iterdir() if d.is_dir()]
+    courses = []
+    for d in COURSES_DIR.iterdir():
+        if d.is_dir():
+            name_file = d / ".name"
+            if name_file.exists():
+                with open(name_file, "r", encoding="utf-8") as f:
+                    courses.append(f.read().strip())
+    return courses
 
 def delete_course(course_name: str) -> bool:
     import shutil
-    path = COURSES_DIR / course_name
+    safe = hashlib.md5(course_name.encode()).hexdigest()[:8]
+    path = COURSES_DIR / safe
+    vec_path = VECTORS_DIR / f"{safe}.pkl"
     if path.exists():
         shutil.rmtree(path)
+    if vec_path.exists():
+        vec_path.unlink()
     return True
 
 
@@ -103,23 +123,19 @@ def parse_document(file_path: str) -> Tuple[str, str]:
         raise Exception(f"不支持的格式: {suffix}")
 
 def chunk_text(text: str, chunk_size: int = 500) -> List[Dict]:
-    """简单切分文本"""
     paragraphs = text.split("\n")
     chunks = []
     current_chunk = []
     current_size = 0
     current_section = ""
     
+    import re
     for p in paragraphs:
         p = p.strip()
         if not p:
             continue
-        
-        # 检测章节标题
-        import re
         if re.match(r'^[一二三四五六七八九十]+、', p) or re.match(r'^第.+[章节]', p):
             current_section = p
-        
         if current_size + len(p) > chunk_size and current_chunk:
             chunks.append({
                 "text": "\n".join(current_chunk),
@@ -128,97 +144,62 @@ def chunk_text(text: str, chunk_size: int = 500) -> List[Dict]:
             })
             current_chunk = []
             current_size = 0
-        
         current_chunk.append(p)
         current_size += len(p)
-    
     if current_chunk:
         chunks.append({
             "text": "\n".join(current_chunk),
             "chunk_id": len(chunks),
             "metadata": {"section": current_section}
         })
-    
     return chunks
-
-def get_file_type_label(suffix: str) -> str:
-    labels = {".docx": "Word", ".txt": "文本", ".pdf": "PDF"}
-    return labels.get(suffix.lower(), "未知")
 
 
 # ==================== 向量存储模块 ====================
-class SimpleVectorStore:
-    """简单的向量存储 - 使用session_state持久化"""
+class FileVectorStore:
+    def __init__(self, course_name: str):
+        self.course_name = course_name
+        self.safe_name = hashlib.md5(course_name.encode()).hexdigest()[:8]
+        self.data_file = VECTORS_DIR / f"{self.safe_name}.pkl"
+        self.data = self._load()
     
-    def __init__(self, data_dir: str):
-        self.data_dir = Path(data_dir)
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-        
-        # 使用 session_state 存储数据
-        if "vector_store_data" not in st.session_state:
-            st.session_state.vector_store_data = {}
-        
-        self.courses = st.session_state.vector_store_data
+    def _load(self) -> Dict:
+        if self.data_file.exists():
+            with open(self.data_file, 'rb') as f:
+                return pickle.load(f)
+        return {"documents": [], "metadatas": []}
     
-    def _get_file(self, course_name: str) -> Path:
-        safe = hashlib.md5(course_name.encode()).hexdigest()[:8]
-        return self.data_dir / f"course_{safe}.pkl"
+    def _save(self):
+        with open(self.data_file, 'wb') as f:
+            pickle.dump(self.data, f)
     
-    def add_documents(self, course_name: str, documents: List[Dict], file_name: str) -> bool:
+    def add_documents(self, documents: List[Dict], file_name: str) -> bool:
         try:
-            texts = [d["text"] for d in documents]
-            metas = [{**d.get("metadata", {}), "file_name": file_name} for d in documents]
-            
-            if course_name not in self.courses:
-                self.courses[course_name] = {"documents": texts, "metadatas": metas}
-            else:
-                self.courses[course_name]["documents"].extend(texts)
-                self.courses[course_name]["metadatas"].extend(metas)
-            
-            # 更新 session_state
-            st.session_state.vector_store_data = self.courses
-            
-            # 也保存到文件（备份）
-            try:
-                data = {
-                    "course_name": course_name,
-                    "documents": self.courses[course_name]["documents"],
-                    "metadatas": self.courses[course_name]["metadatas"]
-                }
-                with open(self._get_file(course_name), 'wb') as f:
-                    pickle.dump(data, f)
-            except:
-                pass
-            
+            for d in documents:
+                self.data["documents"].append(d["text"])
+                self.data["metadatas"].append({
+                    **d.get("metadata", {}),
+                    "file_name": file_name
+                })
+            self._save()
             return True
         except Exception as e:
             st.error(f"添加文档失败: {e}")
             return False
     
-    def search(self, course_name: str, query: str, top_k: int = 5) -> List[Dict]:
-        # 关键：每次搜索时重新获取最新数据
-        self.courses = st.session_state.get("vector_store_data", {})
-        
-        if course_name not in self.courses:
-            return []
-        
-        data = self.courses[course_name]
-        docs = data.get("documents", [])
-        metas = data.get("metadatas", [])
-        
+    def search(self, query: str, top_k: int = 5) -> List[Dict]:
+        docs = self.data.get("documents", [])
+        metas = self.data.get("metadatas", [])
         if not docs:
             return []
-        
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer
             from sklearn.metrics.pairwise import cosine_similarity
-            
             vectorizer = TfidfVectorizer(max_features=3000)
             all_texts = docs + [query]
             matrix = vectorizer.fit_transform(all_texts)
             sims = cosine_similarity(matrix[-1:], matrix[:-1])[0]
             top_idx = np.argsort(sims)[::-1][:top_k]
-            
             results = []
             for i in top_idx:
                 if sims[i] > 0:
@@ -232,61 +213,31 @@ class SimpleVectorStore:
             st.error(f"检索失败: {e}")
             return []
     
-    def get_stats(self, course_name: str) -> Dict:
-        self.courses = st.session_state.get("vector_store_data", {})
-        if course_name not in self.courses:
-            return {"count": 0}
-        return {"count": len(self.courses[course_name].get("documents", []))}
+    def get_stats(self) -> Dict:
+        return {"count": len(self.data.get("documents", []))}
     
-    def list_files(self, course_name: str) -> List[str]:
-        self.courses = st.session_state.get("vector_store_data", {})
-        if course_name not in self.courses:
-            return []
-        return list(set(m.get("file_name", "") for m in self.courses[course_name].get("metadatas", [])))
-    
-    def delete_file(self, course_name: str, file_name: str) -> bool:
-        if course_name not in self.courses:
-            return False
-        
-        data = self.courses[course_name]
-        new_docs = []
-        new_metas = []
-        
-        for doc, meta in zip(data["documents"], data["metadatas"]):
-            if meta.get("file_name") != file_name:
-                new_docs.append(doc)
-                new_metas.append(meta)
-        
-        data["documents"] = new_docs
-        data["metadatas"] = new_metas
-        self._save(course_name)
-        return True
+    def list_files(self) -> List[str]:
+        return list(set(m.get("file_name", "") for m in self.data.get("metadatas", [])))
 
 
 # ==================== LLM客户端 ====================
 def call_llm(provider: str, api_key: str, model: str, messages: List[Dict]) -> str:
-    """调用大模型API"""
     import openai
-    
     config = MODEL_CONFIG.get(provider, MODEL_CONFIG["deepseek"])
     client = openai.OpenAI(api_key=api_key, base_url=config["base_url"])
-    
     response = client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=0.7,
         max_tokens=2000
     )
-    
     return response.choices[0].message.content
 
 def build_prompt(question: str, contexts: List[Dict], course_name: str) -> List[Dict]:
-    """构建RAG提示词"""
     context_text = "\n\n".join([
         f"【参考资料{i+1}】{c['metadata'].get('section', '')}\n{c['text']}"
         for i, c in enumerate(contexts)
     ])
-    
     system_prompt = f"""你是课程「{course_name}」的学习助手。
 请基于以下参考资料回答问题，并在回答末尾标注内容来源。
 
@@ -299,7 +250,6 @@ def build_prompt(question: str, contexts: List[Dict], course_name: str) -> List[
 3. 在回答末尾用以下格式标注来源：
    📖 来源：课件名 - 章节名
 """
-    
     return [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": question}
@@ -313,7 +263,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# 初始化
 if "current_course" not in st.session_state:
     st.session_state.current_course = None
 if "messages" not in st.session_state:
@@ -321,29 +270,20 @@ if "messages" not in st.session_state:
 if "config" not in st.session_state:
     st.session_state.config = load_config()
 
-# 关键：向量存储数据必须在最开始初始化，确保全局共享
-if "vector_store_data" not in st.session_state:
-    st.session_state.vector_store_data = {}
-
-# 侧边栏
 with st.sidebar:
     st.markdown("### ⚙️ 模型配置")
-    
     provider = st.selectbox(
         "选择大模型",
         options=list(MODEL_CONFIG.keys()),
         format_func=lambda x: MODEL_CONFIG[x]["name"],
         index=0
     )
-    
     api_key = st.text_input("API密钥", type="password", value=st.session_state.config.get("api_key", ""))
-    
     model = st.selectbox(
         "选择模型",
         options=MODEL_CONFIG[provider]["models"],
         index=0
     )
-    
     if st.button("保存配置", type="primary"):
         st.session_state.config = {"provider": provider, "api_key": api_key, "model": model}
         save_config(st.session_state.config)
@@ -351,7 +291,6 @@ with st.sidebar:
     
     st.divider()
     st.markdown("### 📚 课程管理")
-    
     new_course = st.text_input("新课程名称")
     if st.button("创建课程") and new_course:
         get_course_path(new_course)
@@ -374,94 +313,66 @@ with st.sidebar:
                     st.session_state.current_course = None
                 st.rerun()
 
-# 主界面
 if not st.session_state.current_course:
     st.info("👈 请先在侧边栏选择或创建课程")
     st.stop()
 
 course_name = st.session_state.current_course
 course_dir = get_course_path(course_name)
+vs = FileVectorStore(course_name)
 
 tab1, tab2 = st.tabs(["📄 课件管理", "💬 问答助手"])
 
 with tab1:
     st.markdown(f"### 当前课程：**{course_name}**")
-    
-    # 上传课件
     uploaded_files = st.file_uploader(
         "上传课件（支持 Word/TXT/PDF）",
         type=["docx", "txt", "pdf"],
         accept_multiple_files=True
     )
-    
     if uploaded_files and st.button("上传并处理"):
-        vs = SimpleVectorStore(str(COURSES_DIR))
         progress = st.progress(0)
-        
         for i, file in enumerate(uploaded_files):
-            # 保存文件
             file_path = course_dir / file.name
             with open(file_path, "wb") as f:
                 f.write(file.getbuffer())
-            
             try:
-                # 解析文档
                 text, ftype = parse_document(str(file_path))
                 chunks = chunk_text(text)
-                vs.add_documents(course_name, chunks, file.name)
-                
-                # 保存元数据
+                vs.add_documents(chunks, file.name)
                 meta = {"name": file.name, "type": ftype, "chunks": len(chunks)}
                 with open(course_dir / f"{file.name}.meta.json", "w", encoding="utf-8") as f:
                     json.dump(meta, f, ensure_ascii=False)
-                
             except Exception as e:
                 st.error(f"处理 {file.name} 失败: {e}")
-            
             progress.progress((i + 1) / len(uploaded_files))
-        
-        st.success(f"✅ 已处理 {len(uploaded_files)} 个文件")
+        st.success(f"✅ 已处理 {len(uploaded_files)} 个文件，数据已持久化保存")
         st.rerun()
     
-    # 课件列表
     st.markdown("#### 已上传课件")
-    vs = SimpleVectorStore(str(COURSES_DIR))
-    stats = vs.get_stats(course_name)
+    stats = vs.get_stats()
     st.metric("文档片段数", stats["count"])
-    
-    for f in vs.list_files(course_name):
+    for f in vs.list_files():
         st.markdown(f"📄 {f}")
+    st.info("💡 提示：数据已保存到文件，刷新页面不会丢失")
 
 with tab2:
     st.markdown("### 💬 课程问答")
-    
     if not st.session_state.config.get("api_key"):
         st.warning("⚠️ 请先在侧边栏配置API密钥")
         st.stop()
-    
-    # 聊天记录
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
-    
-    # 输入框
     if question := st.chat_input("输入你的问题..."):
         st.session_state.messages.append({"role": "user", "content": question})
-        
         with st.chat_message("user"):
             st.markdown(question)
-        
         with st.chat_message("assistant"):
             with st.spinner("思考中..."):
-                # 检索相关内容
-                vs = SimpleVectorStore(str(COURSES_DIR))
-                contexts = vs.search(course_name, question, top_k=3)
-                
+                contexts = vs.search(question, top_k=3)
                 if contexts:
-                    # 构建提示词
                     messages = build_prompt(question, contexts, course_name)
-                    
-                    # 调用大模型
                     try:
                         answer = call_llm(
                             st.session_state.config["provider"],
@@ -476,9 +387,7 @@ with tab2:
                 else:
                     answer = "抱歉，没有找到相关的课件内容。请先上传相关课件。"
                     st.warning(answer)
-                
                 st.session_state.messages.append({"role": "assistant", "content": answer})
-    
     if st.button("清空对话"):
         st.session_state.messages = []
         st.rerun()
