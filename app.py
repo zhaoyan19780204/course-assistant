@@ -274,6 +274,30 @@ st.set_page_config(
 # 深色主题样式
 st.markdown("""
 <style>
+
+/* 强制深色背景 - 覆盖所有主内容区 */
+section[data-testid="stMain"],
+section[data-testid="stMain"] > div,
+section[data-testid="stMain"] > div > div,
+.stMainBlockContainer,
+.main,
+.main > div,
+[data-testid="stMainBlockContainer"],
+[data-testid="stMainBlockContainer"] > div {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+}
+
+/* 标签页内容区 */
+.stTabs [data-testid="stVerticalBlock"],
+.stTabs > div > div > div {
+    background: transparent !important;
+}
+
+/* 问答区域背景 */
+div[data-testid="stVerticalBlock"] {
+    background: transparent !important;
+}
+
 /* 整体深色背景 */
 .main .block-container {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -570,7 +594,7 @@ with st.sidebar:
             st.success("✅ 配置已保存")
     
     st.divider()
-    st.markdown("### 📚 课程管理")
+    st.markdown("### 📚 课程管理 (v0.5.0)")
     new_course = st.text_input("新课程名称")
     if st.button("创建课程") and new_course:
         get_course_path(new_course)
