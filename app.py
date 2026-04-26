@@ -24,8 +24,8 @@ MODEL_CONFIG = {
     "deepseek": {
         "name": "DeepSeek",
         "base_url": "https://api.deepseek.com/v1",
-        "models": ["deepseek-chat", "deepseek-reasoner"],
-        "default_model": "deepseek-chat"
+        "models": ["deepseek-reasoner", "deepseek-chat"],
+        "default_model": "deepseek-reasoner"
     },
     "qwen": {
         "name": "通义千问",
@@ -197,7 +197,6 @@ class FileVectorStore:
             from sklearn.feature_extraction.text import TfidfVectorizer
             from sklearn.metrics.pairwise import cosine_similarity
             
-            # 中文分词
             def tokenize(text):
                 return ' '.join(jieba.cut(text))
             
@@ -272,45 +271,172 @@ st.set_page_config(
     layout="wide"
 )
 
-# 自定义样式
+# 深色主题样式
 st.markdown("""
 <style>
+/* 整体深色背景 */
+.main .block-container {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 2rem;
+    min-height: 100vh;
+}
+
+/* 侧边栏样式 */
+section[data-testid='stSidebar'] {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+}
+
+section[data-testid='stSidebar'] .element-container {
+    color: #e8e8e8;
+}
+
+/* 输入框样式 */
 div[data-testid='stChatInput'] textarea {
     min-height: 120px !important;
     font-size: 16px !important;
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    color: #e8e8e8 !important;
+    border-radius: 12px !important;
 }
+
+div[data-testid='stChatInput'] textarea:focus {
+    border-color: #e94560 !important;
+    box-shadow: 0 0 20px rgba(233,69,96,0.3) !important;
+}
+
+/* 对话消息样式 */
 div[data-testid='stChatMessage'] {
-    padding: 10px;
-    margin-bottom: 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+div[data-testid='stChatMessage'] p {
+    color: #e8e8e8 !important;
+}
+
+/* 用户消息特殊样式 */
+div[data-testid='stChatMessage']:has([data-testid='stChatMessageAvatarUser']) {
+    background: linear-gradient(135deg, rgba(233,69,96,0.1), rgba(233,69,96,0.05));
+    border-left: 3px solid #e94560;
+}
+
+/* AI消息特殊样式 */
+div[data-testid='stChatMessage']:has([data-testid='stChatMessageAvatarAssistant']) {
+    background: linear-gradient(135deg, rgba(15,52,96,0.3), rgba(22,33,62,0.3));
+    border-left: 3px solid #0f3460;
+}
+
+/* 标题样式 */
+h1, h2, h3 {
+    color: #e8e8e8 !important;
+    font-weight: 600 !important;
+}
+
+/* 标签页样式 */
+button[data-testid='stBaseButton-secondary'] {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    color: #e8e8e8 !important;
+}
+
+button[data-testid='stBaseButton-secondary']:hover {
+    background: rgba(233,69,96,0.2) !important;
+    border-color: #e94560 !important;
+}
+
+/* 隐藏默认的Streamlit元素 */
+section[data-testid='stSidebar'] > div > div:nth-child(1) {
+    display: none;
+}
+
+/* 课程按钮样式 */
+button[kind="secondary"] {
+    background: rgba(255,255,255,0.05) !important;
+    border-radius: 8px !important;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(233,69,96,0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(233,69,96,0.5);
+}
+
+/* 提示文字颜色 */
+.stMarkdown p {
+    color: #b8b8b8 !important;
+}
+
+/* 信息框样式 */
+div[data-testid='stInfo'] {
+    background: rgba(15,52,96,0.3) !important;
+    border: 1px solid rgba(233,69,96,0.3) !important;
+}
+
+div[data-testid='stSuccess'] {
+    background: rgba(15,52,96,0.3) !important;
+}
+
+div[data-testid='stWarning'] {
+    background: rgba(233,69,96,0.2) !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-if "current_course" not in st.session_state:
-    st.session_state.current_course = None
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "config" not in st.session_state:
     st.session_state.config = load_config()
 
+# 默认选择第一个课程
+courses = list_courses()
+if "current_course" not in st.session_state:
+    if courses:
+        st.session_state.current_course = courses[0]
+    else:
+        st.session_state.current_course = None
+
 with st.sidebar:
-    st.markdown("### ⚙️ 模型配置")
-    provider = st.selectbox(
-        "选择大模型",
-        options=list(MODEL_CONFIG.keys()),
-        format_func=lambda x: MODEL_CONFIG[x]["name"],
-        index=0
-    )
-    api_key = st.text_input("API密钥", type="password", value=st.session_state.config.get("api_key", ""))
-    model = st.selectbox(
-        "选择模型",
-        options=MODEL_CONFIG[provider]["models"],
-        index=0
-    )
-    if st.button("保存配置", type="primary"):
-        st.session_state.config = {"provider": provider, "api_key": api_key.strip(), "model": model}
-        save_config(st.session_state.config)
-        st.success("✅ 配置已保存")
+    # 模型配置（收起状态）
+    with st.expander("⚙️ 模型配置", expanded=False):
+        provider = st.selectbox(
+            "选择大模型",
+            options=list(MODEL_CONFIG.keys()),
+            format_func=lambda x: MODEL_CONFIG[x]["name"],
+            index=0
+        )
+        
+        # 默认选择 deepseek-reasoner
+        model_list = MODEL_CONFIG[provider]["models"]
+        default_model = MODEL_CONFIG[provider]["default_model"]
+        default_index = model_list.index(default_model) if default_model in model_list else 0
+        
+        api_key = st.text_input("API密钥", type="password", value=st.session_state.config.get("api_key", ""))
+        model = st.selectbox(
+            "选择模型",
+            options=model_list,
+            index=default_index
+        )
+        if st.button("保存配置", type="primary"):
+            st.session_state.config = {"provider": provider, "api_key": api_key.strip(), "model": model}
+            save_config(st.session_state.config)
+            st.success("✅ 配置已保存")
     
     st.divider()
     st.markdown("### 📚 课程管理")
@@ -322,31 +448,37 @@ with st.sidebar:
         st.rerun()
     
     courses = list_courses()
-    for course in courses:
+    for idx, course in enumerate(courses, 1):
         c1, c2 = st.columns([3, 1])
         with c1:
-            if st.button(f"📖 {course}", key=f"sel_{course}"):
+            # 课程前加序号，高亮当前课程
+            if st.session_state.current_course == course:
+                label = f"✅ {idx}. {course}"
+            else:
+                label = f"📖 {idx}. {course}"
+            if st.button(label, key=f"sel_{course}"):
                 st.session_state.current_course = course
                 st.session_state.messages = []
                 st.rerun()
         with c2:
             if st.button("🗑️", key=f"del_{course}"):
                 delete_course(course)
-                if st.session_state.current_course == course:
-                    st.session_state.current_course = None
+                remaining = [c for c in courses if c != course]
+                st.session_state.current_course = remaining[0] if remaining else None
                 st.rerun()
 
 if not st.session_state.current_course:
-    st.info("👈 请先在侧边栏选择或创建课程")
+    st.info("👈 请先在侧边栏创建课程")
     st.stop()
 
 course_name = st.session_state.current_course
 course_dir = get_course_path(course_name)
 vs = FileVectorStore(course_name)
 
-tab1, tab2 = st.tabs(["📄 课件管理", "💬 问答助手"])
+# 默认显示问答助手（第一个标签）
+tab1, tab2 = st.tabs(["💬 问答助手", "📄 课件管理"])
 
-with tab1:
+with tab2:
     st.markdown(f"### 当前课程：**{course_name}**")
     uploaded_files = st.file_uploader(
         "上传课件（支持 Word/TXT/PDF）",
@@ -379,8 +511,8 @@ with tab1:
         st.markdown(f"📄 {f}")
     st.info("💡 提示：数据已保存到文件，刷新页面不会丢失")
 
-with tab2:
-    st.markdown("### 💬 课程问答")
+with tab1:
+    st.markdown(f"### 💬 课程问答 - **{course_name}**")
     st.markdown("**在下方输入框提问，最新的对话显示在最上面**")
     
     if not st.session_state.config.get("api_key"):
