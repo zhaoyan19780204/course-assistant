@@ -243,3 +243,23 @@ def get_file_type_label(suffix: str) -> str:
         ".flac": "音频(FLAC)"
     }
     return type_labels.get(suffix.lower(), "未知格式")
+
+
+class DocumentParser:
+    """文档解析器"""
+    
+    @staticmethod
+    def parse(file_path: str) -> Tuple[str, str]:
+        """解析文档，返回 (文本内容, 文件类型)"""
+        return parse_document(file_path)
+    
+    @staticmethod
+    def chunk(text: str, chunk_size: int = 600, overlap: int = 30) -> List[Dict]:
+        """切分文本"""
+        return chunk_text(text, chunk_size, overlap)
+    
+    @staticmethod
+    def get_file_type(file_path: str) -> str:
+        """获取文件类型"""
+        suffix = Path(file_path).suffix.lower()
+        return get_file_type_label(suffix)
