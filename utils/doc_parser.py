@@ -52,17 +52,7 @@ def parse_pdf(file_path: str) -> str:
 
 def parse_audio(file_path: str) -> str:
     """解析音频文件，转写为文字"""
-    try:
-        import whisper
-    except ImportError:
-        raise Exception("请先安装 whisper: pip install openai-whisper")
-    
-    try:
-        model = whisper.load_model("base")
-        result = model.transcribe(file_path, language="zh")
-        return result["text"]
-    except Exception as e:
-        raise Exception(f"音频转写失败: {e}")
+    raise Exception("音频转写功能暂不可用（需要额外配置）。请上传 Word/TXT/PDF 格式的课件。")
 
 
 def parse_document(file_path: str) -> Tuple[str, str]:
