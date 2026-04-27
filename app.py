@@ -275,6 +275,7 @@ st.set_page_config(
 st.markdown("""
 <style>
 
+
 /* 强制深色背景 - 覆盖所有主内容区 */
 section[data-testid="stMain"],
 section[data-testid="stMain"] > div,
@@ -481,7 +482,8 @@ hr, .stDivider {
     border-color: rgba(255,255,255,0.1) !important;
 }
 
-</style>
+
+
 /* 主内容区背景 */
 .main, .main > div, section[data-testid='stMain'] {
     background: transparent !important;
@@ -552,6 +554,8 @@ hr, .stDivider {
     background: rgba(255,255,255,0.03) !important;
     color: #e8e8e8 !important;
 }
+
+</style>
 """, unsafe_allow_html=True)
 
 if "messages" not in st.session_state:
@@ -594,7 +598,7 @@ with st.sidebar:
             st.success("✅ 配置已保存")
     
     st.divider()
-    st.markdown("### 📚 课程管理 (v0.5.0)")
+    st.markdown("### 📚 课程管理 (v0.5.1)")
     new_course = st.text_input("新课程名称")
     if st.button("创建课程") and new_course:
         get_course_path(new_course)
