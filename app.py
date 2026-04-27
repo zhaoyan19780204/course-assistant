@@ -599,6 +599,19 @@ div[data-testid="stChatInput"] textarea::placeholder {
     color: rgba(255,255,255,0.5) !important;
 }
 
+
+/* 输入框 - 浅色背景 + 深色字体 */
+div[data-testid="stChatInput"] textarea,
+.stChatInput textarea {
+    background: rgba(255,255,255,0.95) !important;
+    color: #1a1a2e !important;
+    -webkit-text-fill-color: #1a1a2e !important;
+}
+
+div[data-testid="stChatInput"] textarea::placeholder {
+    color: rgba(0,0,0,0.4) !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -642,7 +655,7 @@ with st.sidebar:
             st.success("✅ 配置已保存")
     
     st.divider()
-    st.markdown("### 📚 课程管理 (v0.5.3)")
+    st.markdown("### 📚 课程管理 (v0.5.4)")
     new_course = st.text_input("新课程名称")
     if st.button("创建课程") and new_course:
         get_course_path(new_course)
