@@ -584,6 +584,21 @@ html, body, .stApp {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
 }
 
+
+/* 输入框字体颜色 - 必须是浅色才能在深色背景上看见 */
+div[data-testid="stChatInput"] textarea,
+div[data-testid="stChatInput"] textarea::placeholder,
+.stChatInput textarea,
+.stChatInput textarea::placeholder {
+    color: #e8e8e8 !important;
+    -webkit-text-fill-color: #e8e8e8 !important;
+}
+
+/* placeholder颜色 */
+div[data-testid="stChatInput"] textarea::placeholder {
+    color: rgba(255,255,255,0.5) !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -627,7 +642,7 @@ with st.sidebar:
             st.success("✅ 配置已保存")
     
     st.divider()
-    st.markdown("### 📚 课程管理 (v0.5.2)")
+    st.markdown("### 📚 课程管理 (v0.5.3)")
     new_course = st.text_input("新课程名称")
     if st.button("创建课程") and new_course:
         get_course_path(new_course)
