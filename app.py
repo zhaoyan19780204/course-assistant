@@ -274,343 +274,107 @@ st.set_page_config(
 # 深色主题样式
 st.markdown("""
 <style>
-
-
-/* 强制深色背景 - 覆盖所有主内容区 */
-section[data-testid="stMain"],
-section[data-testid="stMain"] > div,
-section[data-testid="stMain"] > div > div,
-.stMainBlockContainer,
-.main,
-.main > div,
-[data-testid="stMainBlockContainer"],
-[data-testid="stMainBlockContainer"] > div {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
-}
-
-/* 标签页内容区 */
-.stTabs [data-testid="stVerticalBlock"],
-.stTabs > div > div > div {
-    background: transparent !important;
-}
-
-/* 问答区域背景 */
-div[data-testid="stVerticalBlock"] {
-    background: transparent !important;
-}
-
-/* 整体深色背景 */
-.main .block-container {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    padding: 2rem;
-    min-height: 100vh;
-}
-
-/* 侧边栏样式 */
-section[data-testid='stSidebar'] {
-    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-}
-
-section[data-testid='stSidebar'] .element-container {
-    color: #e8e8e8;
-}
-
-/* 输入框样式 */
-div[data-testid='stChatInput'] textarea {
-    min-height: 120px !important;
-    font-size: 16px !important;
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    color: #e8e8e8 !important;
-    border-radius: 12px !important;
-}
-
-div[data-testid='stChatInput'] textarea:focus {
-    border-color: #e94560 !important;
-    box-shadow: 0 0 20px rgba(233,69,96,0.3) !important;
-}
-
-/* 对话消息样式 */
-div[data-testid='stChatMessage'] {
-    background: rgba(255,255,255,0.03);
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 16px;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-
-div[data-testid='stChatMessage'] p {
-    color: #e8e8e8 !important;
-}
-
-/* 用户消息特殊样式 */
-div[data-testid='stChatMessage']:has([data-testid='stChatMessageAvatarUser']) {
-    background: linear-gradient(135deg, rgba(233,69,96,0.1), rgba(233,69,96,0.05));
-    border-left: 3px solid #e94560;
-}
-
-/* AI消息特殊样式 */
-div[data-testid='stChatMessage']:has([data-testid='stChatMessageAvatarAssistant']) {
-    background: linear-gradient(135deg, rgba(15,52,96,0.3), rgba(22,33,62,0.3));
-    border-left: 3px solid #0f3460;
-}
-
-/* 标题样式 */
-h1, h2, h3 {
-    color: #e8e8e8 !important;
-    font-weight: 600 !important;
-}
-
-/* 标签页样式 */
-button[data-testid='stBaseButton-secondary'] {
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    color: #e8e8e8 !important;
-}
-
-button[data-testid='stBaseButton-secondary']:hover {
-    background: rgba(233,69,96,0.2) !important;
-    border-color: #e94560 !important;
-}
-
-/* 隐藏默认的Streamlit元素 */
-section[data-testid='stSidebar'] > div > div:nth-child(1) {
-    display: none;
-}
-
-/* 课程按钮样式 */
-button[kind="secondary"] {
-    background: rgba(255,255,255,0.05) !important;
-    border-radius: 8px !important;
-}
-
-/* 滚动条样式 */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.05);
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(233,69,96,0.3);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(233,69,96,0.5);
-}
-
-/* 提示文字颜色 */
-.stMarkdown p {
-    color: #b8b8b8 !important;
-}
-
-/* 信息框样式 */
-div[data-testid='stInfo'] {
-    background: rgba(15,52,96,0.3) !important;
-    border: 1px solid rgba(233,69,96,0.3) !important;
-}
-
-div[data-testid='stSuccess'] {
-    background: rgba(15,52,96,0.3) !important;
-}
-
-div[data-testid='stWarning'] {
-    background: rgba(233,69,96,0.2) !important;
-}
-
-/* 主内容区背景 */
-.main, .main > div, section[data-testid='stMain'] {
-    background: transparent !important;
-}
-
-/* 标签页容器背景 */
-.stTabs, .stTabs > div, .stTabs [data-testid='stVerticalBlock'] {
-    background: transparent !important;
-}
-
-/* 激活的标签页 */
-.stTabs button[aria-selected="true"] {
-    background: rgba(233,69,96,0.3) !important;
-    border-color: #e94560 !important;
-}
-
-/* 文件上传区域 */
-section[data-testid='stFileUploader'] {
-    background: rgba(255,255,255,0.02) !important;
-    border-radius: 12px;
-    padding: 10px;
-}
-
-/* Metric样式 */
-div[data-testid='stMetric'] {
-    background: rgba(255,255,255,0.03) !important;
-    border-radius: 12px;
-    padding: 16px;
-}
-
-div[data-testid='stMetric'] label {
-    color: #b8b8b8 !important;
-}
-
-div[data-testid='stMetric'] [data-testid='stMetricValue'] {
-    color: #e94560 !important;
-}
-
-/* 文本输入框 */
-input[type="text"], .stTextInput input {
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    color: #e8e8e8 !important;
-}
-
-/* 选择框 */
-div[data-baseweb="select"] > div {
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-}
-
-div[data-baseweb="select"] span {
-    color: #e8e8e8 !important;
-}
-
-/* 分割线 */
-hr, .stDivider {
-    border-color: rgba(255,255,255,0.1) !important;
-}
-
-
-
-/* 主内容区背景 */
-.main, .main > div, section[data-testid='stMain'] {
-    background: transparent !important;
-}
-
-/* 标签页容器背景 */
-.stTabs, .stTabs > div, .stTabs [data-testid='stVerticalBlock'] {
-    background: transparent !important;
-}
-
-/* 标签页面板背景 */
-div[data-testid='stVerticalBlock'] > div:has(> div[data-testid='stChatInput']) {
-    background: transparent !important;
-}
-
-/* 激活的标签页 */
-.stTabs button[aria-selected="true"] {
-    background: rgba(233,69,96,0.3) !important;
-    border-color: #e94560 !important;
-}
-
-/* 文件上传区域 */
-section[data-testid='stFileUploader'] {
-    background: rgba(255,255,255,0.02) !important;
-    border-radius: 12px;
-    padding: 10px;
-}
-
-/* Metric样式 */
-div[data-testid='stMetric'] {
-    background: rgba(255,255,255,0.03) !important;
-    border-radius: 12px;
-    padding: 16px;
-}
-
-div[data-testid='stMetric'] label {
-    color: #b8b8b8 !important;
-}
-
-div[data-testid='stMetric'] [data-testid='stMetricValue'] {
-    color: #e94560 !important;
-}
-
-/* 文本输入框 */
-input[type="text"], .stTextInput input {
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    color: #e8e8e8 !important;
-}
-
-/* 选择框 */
-div[data-baseweb="select"] > div {
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-}
-
-div[data-baseweb="select"] span {
-    color: #e8e8e8 !important;
-}
-
-/* 分割线 */
-hr, .stDivider {
-    border-color: rgba(255,255,255,0.1) !important;
-}
-
-/* Expander样式 */
-.streamlit-expanderHeader {
-    background: rgba(255,255,255,0.03) !important;
-    color: #e8e8e8 !important;
-}
-
-
-/* 覆盖所有可能的白色背景区域 */
-.stApp, .stApp > div, .stApp > header, .stApp > footer,
-header[data-testid="stHeader"], footer[data-testid="stFooter"],
-[data-testid="stHeader"], [data-testid="stFooter"],
-.stDecoration, .stDeployButton,
-section[data-testid="stSidebar"] + div,
-.stAppViewMainViewBlockContainer,
-[class*="stApp"], [class*="streamlit"] {
-    background: transparent !important;
-    background-color: transparent !important;
-}
-
-/* 顶部header区域 */
-header {
-    background: rgba(26, 26, 46, 0.95) !important;
-    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
-}
-
-/* 底部区域 */
-footer, [data-testid="stFooter"] {
-    background: rgba(26, 26, 46, 0.95) !important;
-}
-
 /* 全局背景 */
 html, body, .stApp {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
 }
 
+.main .block-container, section[data-testid="stMain"] > div, .stMainBlockContainer {
+    background: transparent !important;
+}
 
-/* 输入框字体颜色 - 必须是浅色才能在深色背景上看见 */
-div[data-testid="stChatInput"] textarea,
-div[data-testid="stChatInput"] textarea::placeholder,
-.stChatInput textarea,
-.stChatInput textarea::placeholder {
+/* 侧边栏 */
+section[data-testid='stSidebar'] {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%) !important;
+}
+
+section[data-testid='stSidebar'] > div > div:nth-child(1) {
+    display: none;
+}
+
+/* 标签页 */
+.stTabs, .stTabs > div { background: transparent !important; }
+.stTabs button[aria-selected="true"] {
+    background: rgba(233,69,96,0.3) !important;
+    border-color: #e94560 !important;
     color: #e8e8e8 !important;
-    -webkit-text-fill-color: #e8e8e8 !important;
 }
-
-/* placeholder颜色 */
-div[data-testid="stChatInput"] textarea::placeholder {
-    color: rgba(255,255,255,0.5) !important;
-}
-
 
 /* 输入框 - 浅色背景 + 深色字体 */
-div[data-testid="stChatInput"] textarea,
-.stChatInput textarea {
+div[data-testid='stChatInput'] textarea {
+    min-height: 120px !important;
+    font-size: 16px !important;
     background: rgba(255,255,255,0.95) !important;
     color: #1a1a2e !important;
-    -webkit-text-fill-color: #1a1a2e !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(233,69,96,0.3) !important;
 }
-
-div[data-testid="stChatInput"] textarea::placeholder {
+div[data-testid='stChatInput'] textarea:focus {
+    border-color: #e94560 !important;
+    box-shadow: 0 0 20px rgba(233,69,96,0.3) !important;
+}
+div[data-testid='stChatInput'] textarea::placeholder {
     color: rgba(0,0,0,0.4) !important;
 }
+
+/* 对话消息 */
+div[data-testid='stChatMessage'] {
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+div[data-testid='stChatMessage'] p { color: #e8e8e8 !important; }
+div[data-testid='stChatMessage']:has([data-testid='stChatMessageAvatarUser']) {
+    background: linear-gradient(135deg, rgba(233,69,96,0.15), rgba(233,69,96,0.05));
+    border-left: 3px solid #e94560;
+}
+div[data-testid='stChatMessage']:has([data-testid='stChatMessageAvatarAssistant']) {
+    background: linear-gradient(135deg, rgba(15,52,96,0.3), rgba(22,33,62,0.3));
+    border-left: 3px solid #0f3460;
+}
+
+/* 标题和文字 */
+h1, h2, h3, h4 { color: #e8e8e8 !important; }
+.stMarkdown p { color: #b8b8b8 !important; }
+
+/* 按钮 */
+button[data-testid='stBaseButton-secondary'] {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    color: #e8e8e8 !important;
+}
+button[data-testid='stBaseButton-secondary']:hover {
+    background: rgba(233,69,96,0.2) !important;
+    border-color: #e94560 !important;
+}
+
+/* 输入框和选择框 */
+input[type="text"], .stTextInput input {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    color: #e8e8e8 !important;
+}
+div[data-baseweb="select"] > div {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+}
+div[data-baseweb="select"] span { color: #e8e8e8 !important; }
+
+/* 信息框 */
+div[data-testid='stInfo'] { background: rgba(15,52,96,0.3) !important; border: 1px solid rgba(233,69,96,0.3) !important; }
+div[data-testid='stSuccess'] { background: rgba(15,52,96,0.3) !important; }
+div[data-testid='stWarning'] { background: rgba(233,69,96,0.2) !important; }
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+::-webkit-scrollbar-thumb { background: rgba(233,69,96,0.3); border-radius: 4px; }
+
+/* 其他 */
+hr, .stDivider { border-color: rgba(255,255,255,0.1) !important; }
+.streamlit-expanderHeader { background: rgba(255,255,255,0.03) !important; color: #e8e8e8 !important; }
 
 </style>
 """, unsafe_allow_html=True)
@@ -655,7 +419,7 @@ with st.sidebar:
             st.success("✅ 配置已保存")
     
     st.divider()
-    st.markdown("### 📚 课程管理 (v0.5.4)")
+    st.markdown("### 📚 课程管理 (v0.5.5)")
     new_course = st.text_input("新课程名称")
     if st.button("创建课程") and new_course:
         get_course_path(new_course)
