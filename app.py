@@ -555,6 +555,35 @@ hr, .stDivider {
     color: #e8e8e8 !important;
 }
 
+
+/* 覆盖所有可能的白色背景区域 */
+.stApp, .stApp > div, .stApp > header, .stApp > footer,
+header[data-testid="stHeader"], footer[data-testid="stFooter"],
+[data-testid="stHeader"], [data-testid="stFooter"],
+.stDecoration, .stDeployButton,
+section[data-testid="stSidebar"] + div,
+.stAppViewMainViewBlockContainer,
+[class*="stApp"], [class*="streamlit"] {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* 顶部header区域 */
+header {
+    background: rgba(26, 26, 46, 0.95) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+/* 底部区域 */
+footer, [data-testid="stFooter"] {
+    background: rgba(26, 26, 46, 0.95) !important;
+}
+
+/* 全局背景 */
+html, body, .stApp {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -598,7 +627,7 @@ with st.sidebar:
             st.success("✅ 配置已保存")
     
     st.divider()
-    st.markdown("### 📚 课程管理 (v0.5.1)")
+    st.markdown("### 📚 课程管理 (v0.5.2)")
     new_course = st.text_input("新课程名称")
     if st.button("创建课程") and new_course:
         get_course_path(new_course)
